@@ -1,13 +1,10 @@
 -
 
-^unicode$:
-	user.enable_unicode()
+^smart typography$: mode.enable("user.smart_typography")
+^plain typography$: mode.disable("user.smart_typography")
 
-^no unicode$:
-	user.disable_unicode()
+^unicode$: user.enable_unicode()
+^no unicode$: user.disable_unicode()
 
 insert <user.text>$: auto_insert(text)
 erase: user.smart_delete_words(1)
-
-smart typography: user.enable_smart_typography()
-plain typography: user.disable_smart_typography()

@@ -1,21 +1,16 @@
 import time
 from talon import Context, Module, actions, settings, clip
 import unicodedata
-import subprocess
 
 mod = Module()
-ctx = Context()
 
-mod.setting("smart_typography", type=int, default=1,
-	desc="enable context-aware typography")
+mod.mode("smart_typography", "enable context-aware typography")
 
-mod.setting("unicode", type=int, default=1,
-	desc="enable proper unicode punctuation")
+unicode = True
 
 def clear_selection_clipboard():
-	#if clip.has_mode("select"):
-	#	clip.clear(mode="select")
-	subprocess.run(['xclip', '-i', '/dev/null'])
+	if clip.has_mode("select"):
+		clip.set_text('', mode="select")
 
 def raw_scan(num):
 	if num < 0:
@@ -98,7 +93,11 @@ class Actions:
 		txt: str,
 		space_after: str = ".,!?:;)]}–“‘",
 		no_space_before: str = ".,-!?:;)]}␣“‘’",
-		ascii_replace: dict[str, str] = {'–':'-', '„':'"', '“':'"', "‚":"'", "‘":"'", "’":"'"},
+		ascii_replace: dict[str, str] = {
+			'–':'-',
+			'“':'"',  '”':'"',  '„':'"',
+			"‘":"'",  "’":"'",  "‚":"'",
+		},
 		capitalize_after: str = ".!?"
 	):
 		"""context-aware insertion"""
@@ -108,7 +107,6 @@ class Actions:
 		actions.key("backspace")
 
 		before, after = actions.user.scan_chars_left_right()
-		print(1,before,1,after,1)
 
 		squeeze_into_word = False
 		if before != "" and unicodedata.category(before)[0] == 'L' \
@@ -124,7 +122,7 @@ class Actions:
 		if before in capitalize_after or before == "":
 			txt = txt[0].upper() + txt[1:]
 
-		if settings.get("user.unicode") == 0:
+		if not unicode:
 			ascii = txt
 			for c in ascii_replace:
 				ascii = ascii.replace(c, ascii_replace[c])
@@ -160,26 +158,19 @@ class Actions:
 
 	def enable_unicode():
 		"""enable proper unicode punctuation"""
-		ctx.settings["user.unicode"] = 1
+		global unicode
+		unicode = True
 
 	def disable_unicode():
 		"""disable proper unicode punctuation"""
-		ctx.settings["user.unicode"] = 0
+		global unicode
+		unicode = False
 
-	def enable_smart_typography():
-		"""enable context-aware typography"""
-		ctx.settings["user.smart_typography"] = 1
-
-	def disable_smart_typography():
-		"""disable context-aware typography"""
-		ctx.settings["user.smart_typography"] = 0
-
+ctx = Context()
+ctx.matches = 'mode: user.smart_typography'
 
 # overwrite talon's standard auto_insert
-#@ctx.action_class("main")
-#class main_action:
-#	def auto_insert(text: str):
-#		if settings.get("user.smart_typography") == 1:
-#			actions.user.smart_insert(text)
-#		else:
-#			original_auto_insert(text)
+@ctx.action_class("main")
+class main_action:
+	def auto_insert(text: str):
+		actions.user.smart_insert(text)
